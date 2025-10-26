@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Góc lượng giác — Bộ công cụ trực quan </title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- MathJax (giữ để render công thức nếu cần) -->
+  <script>
+    window.MathJax = { tex: { inlineMath: [['\\(','\\)'], ['$', '$']] } };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    :root {
+      --card: rgba(255, 255, 255, 0.85); /* Màu trắng trong suốt cho hiệu ứng kính ướt */
+      --border: #b0bec5; /* Xám xanh nhạt cho viền */
+      --shadow: 0 10px 28px rgba(0, 0, 0, 0.2); /* Bóng tối hơn cho chiều sâu */
+      --primary: #0288d1; /* Xanh lam mát cho các phần tử chính */
+      --primary-600: #0277bd; /* Xanh lam đậm hơn */
+      --primary-700: #01579b; /* Xanh lam đậm nhất */
+      --violet: #5e35b1; /* Tím đậm cho tương phản */
+      --violet-700: #4527a0; /* Tím đậm hơn */
+      --ink: #0f172a; /* Màu mực đậm cho chữ */
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Inter", sans-serif;
+      margin: 0;
+      padding: 28px;
+      color: var(--ink);
+      background: linear-gradient(135deg, #455a64, #78909c); /* Gradient bầu trời mưa */
+      position: relative;
+      overflow-x: hidden;
+      min-height: 100vh; /* Đảm bảo chiều cao đầy đủ cho hiệu ứng mưa */
+    }
+
+    /* Hiệu ứng mưa */
+    .rain {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none; /* Ngăn tương tác với mưa */
+      z-index: -1; /* Nằm sau nội dung */
+      overflow: hidden;
+    }
+    .raindrop {
+      position: absolute;
+      width: 2px;
+      height: 20px;
+      background: rgba(144, 202, 249, 0.6); /* Giọt mưa xanh lam nhạt, trong suốt */
+      animation: fall linear infinite;
+      border-radius: 2px;
+    }
+    @keyframes fall {
+      0% {
+        transform: translateY(-100vh);
+        opacity: 0.7;
+      }
+      100% {
+        transform: translateY(100vh);
+        opacity: 0.3;
+      }
+    }
+
+    /* Tùy chỉnh tốc độ và vị trí giọt mưa */
+    .raindrop:nth-child(odd) {
+      animation-duration: 0.8s;
+    }
+    .raindrop:nth-child(even) {
+      animation-duration: 1.2s;
+    }
+    .raindrop:nth-child(3n) {
+      animation-duration: 1s;
+    }
+
+    /* Marquee */
+    .marquee {
+      position: absolute;
+      top: 10px;
+      left: 0;
+      width: 100%;
+      white-space: nowrap;
+      font-size: 18px;
+      font-weight: 600;
+      color: #4fc3f7; /* Xanh lam nhạt cho hiệu ứng mưa */
+      animation: marquee 10s linear infinite;
+    }
+    @keyframes marquee {
+      from {
+        transform: translateX(100%);
+      }
+      to {
+        transform: translateX(-100%);
+      }
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      text-align: center;
+      font-weight: 800;
+      color: var(--primary-600);
+    }
+
+    .menu {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      margin: 18px 0;
+    }
+    .menu button {
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+    }
+    .menu .btn-angle {
+      background: linear-gradient(135deg, #0288d1, #4fc3f7); /* Xanh lam - xanh nhạt */
+    }
+    .menu .btn-repr {
+      background: linear-gradient(135deg, #5e35b1, #9575cd); /* Tím - tím nhạt */
+    }
+    .menu .btn-values {
+      background: linear-gradient(135deg, #00838f, #4dd0e1); /* Xanh ngọc - xanh nhạt */
+    }
+
+    .menu button.active {
+      filter: brightness(1.06);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+      transform: translateY(-2px);
+    }
+
+    /* View wrapper */
+    .view {
+      display: none;
+    }
+    .view.active {
+      display: block;
+    }
+
+    .layout {
+      display: flex;
+      gap: 18px;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .panel {
+      width: 340px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      backdrop-filter: blur(8px); /* Hiệu ứng kính mờ */
+    }
+    .panel-title {
+      font-weight: 800;
+      color: #0b2a4a;
+    }
+    input {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1px solid #b0bec5;
+      border-radius: 12px;
+      font-size: 1rem;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.9);
+    }
+    input[readonly] {
+      background: #eceff1;
+      color: #263238;
+      border-style: dashed;
+    }
+    button.action {
+      padding: 9px 16px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 700;
+      box-shadow: 0 6px 16px rgba(2, 136, 209, 0.35);
+    }
+    .formula {
+      color: #37474f;
+      font-size: 0.95rem;
+      text-align: center;
+    }
+
+    /* Canvas shared style */
+    canvas {
+      background: rgba(255, 255, 255, 0.95); /* Trắng trong suốt nhẹ */
+      border: 1px solid #b0bec5;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      cursor: grab;
+    }
+    canvas:active {
+      cursor: grabbing;
+    }
+
+    /* Small helper */
+    .kv {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .kv .label {
+      font-weight: 600;
+    }
+    .warn {
+      color: #d81b60;
+      font-weight: 700;
+    }
+
+    /* View-specific minor styles */
+    .left-small input[readonly] {
+      font-weight: 700;
+      text-align: center;
+    }
+
+    /* Custom action buttons */
+    button.action3 {
+      background: linear-gradient(135deg, #0288d1, #4fc3f7);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button.action3:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(2, 136, 209, 0.45);
+      filter: brightness(1.07);
+    }
+
+    button.action2 {
+      background: linear-gradient(135deg, #5e35b1, #9575cd);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button.action2:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(94, 53, 177, 0.45);
+      filter: brightness(1.06);
+    }
+
+    button.action1 {
+      background: linear-gradient(135deg, #00838f, #4dd0e1);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button.action1:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(0, 131, 143, 0.45);
+      filter: brightness(1.07);
+    }
+
+    button.action5 {
+      background: linear-gradient(135deg, #0277bd, #4fc3f7);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button.action5:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(2, 119, 189, 0.45);
+      filter: brightness(1.07);
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+
+    .row label {
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    .row input[type="number"] {
+      width: 120px;
+      min-width: 60px;
+      box-sizing: border-box;
+    }
+    section {
+      display: flex;
+      justify-content: center;
+    }
+    canvas {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Small adjustment for view3 controls */
+    .view3-left .row {
+      flex-wrap: wrap;
+    }
+    .view3-left #angleLabelVal {
+      display: block;
+      margin-top: 6px;
+      font-weight: 700;
+      color: #0277bd;
+      background: rgba(144, 202, 249, 0.2); /* Xanh lam nhạt, trong suốt */
+      padding: 6px 8px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .view3-left select {
+      min-width: 220px;
+      padding: 6px;
+      border: 1px solid #b0bec5;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <div class="rain"></div>
+  <div class="marquee">Nguyễn Phước Trí - 10 Tin</div>
+  <h1>📐BỘ CÔNG CỤ GÓC LƯỢNG GIÁC⭕</h1>
+  <div style="text-align:center; margin:8px 0 18px; font-style:italic; color:#4fc3f7; font-weight:800;">
+    “Lượng giác là ngôn ngữ của dao động và vòng tròn.”
+  </div>
+
+  <div class="menu">
+    <button id="btnAngle" class="action3">🌐 Góc lượng giác</button>
+    <button id="btnRepr"  class="action2">📍 Điểm biểu diễn góc lượng giác</button>
+    <button id="btnValues" class="action1">📐 Giá trị lượng giác</button>
+  </div>
+
+  <!-- VIEW 1 (giữ nguyên như cũ) -->
+  <section id="view-angle" class="view active">
+    <div class="layout">
+      <aside class="panel">
+        <div class="panel-title">✨Nhập số đo góc lượng giác hoặc rê điểm M</div>
+        <div class="row">
+          <label>👉Độ (°):
+          <input type="number" id="degInput1" value="0" step="1"></label>
+        </div>
+        <div class="row">
+          <label>✨Radian:
+          <input type="text" id="radInput1" value="0" readonly></label>
+        </div>
+
+        <div class="row" style="flex-wrap:nowrap;">
+          <label for="betaInput1">⏰Góc xOy (°):</label>
+          <input type="number" id="betaInput1" value="45" step="1">
+        </div>
+
+        <div id="info1">
+          👉 α = <span id="degShow1">0</span> (<span id="radShow1">0</span> rad)<br> 👉có 
+          k = <span id="kShow1">0</span> vòng quay theo
+          chiều <span id="sgnShow1">0</span>
+        </div>
+
+        <div class="row"><button id="resetBtn1" class="action5">🔄Đưa về 0°</button></div>
+        <div class="formula">⚠️Công thức quy đổi: \( \alpha^{\circ} = \dfrac{\alpha\pi}{180}\,\text{rad} \)</div>
+      </aside>
+
+      <section>
+        <canvas id="canvas1" width="640" height="540"></canvas>
+      </section>
+    </div>
+  </section>
+
+  <!-- VIEW 2 (giữ nguyên như cũ) -->
+  <section id="view-repr" class="view">
+    <div class="layout">
+      <aside class="panel">
+        <div class="panel-title">✨Nhập số đo góc cần biểu diễn hoặc rê điểm M</div>
+        <div class="row">
+          <label>👉Độ (°):
+          <input type="number" id="degInput2" value="0" step="1"></label>
+        </div>
+        <div class="row">
+          <label>✨Radian:
+          <input type="text" id="radInput2" value="0" readonly></label>
+        </div>
+        <div class="row">
+          <label>⏰Góc xOy (°):
+          <input type="number" id="betaInput2" value="90" step="1"></label>
+        </div>
+
+        <div id="info2">
+         👉 α = <span id="degShow2">0</span> (<span id="radShow2">0</span> rad) <br> 👉có
+          k = <span id="kShow2">0</span> vòng quay theo chiều <span id="sgnShow2">0</span>
+        </div>
+
+        <div class="row"><button id="resetBtn2" class="action5">🔄Đưa về 0°</button></div>
+        <div class="formula">Công thức quy đổi: \( \alpha^{\circ} = \dfrac{\alpha\pi}{180}\,\text{rad} \)</div>
+      </aside>
+
+      <section>
+        <canvas id="canvas2" width="640" height="540"></canvas>
+      </section>
+    </div>
+  </section>
+
+  <!-- VIEW 3: thay bằng view mới bạn gửi (IDs có hậu tố Val để tránh xung đột) -->
+  <section id="view-values" class="view">
+    <div class="layout">
+      <aside class="panel view3-left">
+        <div class="panel-title">✨Nhập số đo góc cần tính giá trị hoặc rê điểm M</div>
+
+        <div class="row">
+          <div>
+            <label for="angleInputVal">👉Độ (°):</label>
+            <input type="number" id="angleInputVal" value="0" step="1">
+          </div>
+          <div>
+            <label for="radInputVal">✨Radian:</label>
+            <input type="text" id="radInputVal" value="0" placeholder="π/3, 2π/3, a·π/180, 1.57">
+          </div>
+        </div>
+
+        <div class="row"><span id="angleLabelVal">⏰Góc hiện tại: 0° (0 rad)</span></div>
+
+        <div class="row" style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <label for="modeSelectVal" style="margin:0;">⚙️Tùy chọn:
+              <select id="modeSelectVal" style="min-width:220px; padding:4px;">
+                <option value="none">Định nghĩa giá trị lượng giác</option>
+                <option value="opposite">Góc đối (α &amp; –α)</option>
+                <option value="supplementary">Góc bù (α &amp; π − α)</option>
+                <option value="explementary">Hơn kém π (α &amp; α + π)</option>
+                <option value="complementary">Góc phụ (α &amp; π/2 − α)</option>
+                <option value="conjugate">Góc gối (α &amp; 2π − α)</option>
+              </select>
+            </label>
+          </div>
+
+          <div>
+            <label style="display:flex;align-items:center;gap:6px; margin:0;">
+              <input type="checkbox" id="showSecondVal" checked> Hiện giá trị góc liên kết
+            </label>
+          </div>
+        </div>
+
+        <button id="resetBtnVal" class="action5">🔄Đưa về 0°</button>
+
+        <div id="identityBoxVal"></div>
+
+      </aside>
+
+      <section>
+        <canvas id="circleCanvasVal" width="640" height="540"></canvas>
+      </section>
+    </div>
+  </section>
+
+  <script>
+    // ========= Helpers chung =========
+    const toRad = d => d * Math.PI / 180;
+    const toDeg = r => r * 180 / Math.PI;
+
+    function gcd(a,b){a=Math.abs(a);while(b){[a,b]=[b,a%b]}return a||1}
+    function degToPiFrac(deg){
+      if(deg===0) return "0";
+      const sign = deg<0 ? "-" : "";
+      let num = Math.abs(Math.round(deg)), den = 180;
+      const g = gcd(num,den); num/=g; den/=g;
+      if(den===1) return sign + (num===1 ? "π" : num+"π");
+      return sign + (num===1 ? "π" : num+"π") + "/" + den;
+    }
+    function drawArrowHead(ctx,x,y,dx,dy,color){
+      const L=Math.hypot(dx,dy); if(L<1e-6) return; dx/=L; dy/=L;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(Math.atan2(dy,dx));
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-9,4.5); ctx.lineTo(-9,-4.5); ctx.closePath();
+      ctx.fillStyle=color; ctx.fill(); ctx.restore();
+    }
+    function niceHsl(isPos,t){ const hue=isPos?210:0, sat=70, light=62-22*t; return `hsl(${hue} ${sat}% ${light}%)`; }
+
+    // ========= View 1: Góc lượng giác =========
+    (function(){
+      const canvas = document.getElementById('canvas1');
+      const ctx = canvas.getContext('2d');
+      const cx = canvas.width/2, cy = canvas.height/2;
+
+      const degInput = document.getElementById('degInput1');
+      const radInput = document.getElementById('radInput1');
+      const betaInput = document.getElementById('betaInput1');
+      const degShow = document.getElementById('degShow1');
+      const radShow = document.getElementById('radShow1');
+      const kShow = document.getElementById('kShow1');
+      const sgnShow = document.getElementById('sgnShow1');
+      const resetBtn = document.getElementById('resetBtn1');
+
+      let alphaDeg = 0, betaDeg = 45;
+      let dragging=false, lastRaw=0, ignoreSync=false;
+
+      function drawAxes(){
+        ctx.save();
+        const xRight = canvas.width - 40;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(xRight, cy);
+        ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.4; ctx.stroke();
+        drawArrowHead(ctx, xRight, cy, 1, 0, '#0f172a');
+        ctx.fillStyle='#0b2a4a'; ctx.font='14px Inter'; ctx.fillText('x', xRight-12, cy-10);
+
+        const len=270, ang=toRad(betaDeg);
+        const xOy=cx+len*Math.cos(ang), yOy=cy-len*Math.sin(ang);
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(xOy,yOy);
+        ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.4; ctx.stroke();
+        drawArrowHead(ctx, xOy, yOy, Math.cos(ang), -Math.sin(ang), '#0f172a');
+        ctx.fillText('y', xOy+8, yOy+4);
+
+        ctx.beginPath(); ctx.arc(cx,cy,3,0,2*Math.PI); ctx.fillStyle='#000'; ctx.fill();
+        ctx.fillText('O', cx-18, cy+16);
+      }
+
+      function drawArc(){
+        const rad = toRad(alphaDeg);
+        if(Math.abs(rad)<1e-6) return;
+        if(Math.abs(rad) < 2*Math.PI){
+          const r=42, steps=Math.max(28, Math.ceil(Math.abs(rad)/0.045)), isPos=rad>=0;
+          ctx.save(); ctx.lineWidth=1.8; let prevX=cx+r, prevY=cy;
+          for(let i=1;i<=steps;i++){
+            const t=(i/steps)*rad, x=cx+r*Math.cos(t), y=cy-r*Math.sin(t), ratio=i/steps;
+            ctx.beginPath(); ctx.moveTo(prevX,prevY); ctx.lineTo(x,y);
+            ctx.strokeStyle=niceHsl(isPos,ratio); ctx.stroke(); prevX=x; prevY=y;
+          }
+          const t=rad, s=Math.sign(rad)||1, x=cx+r*Math.cos(t), y=cy-r*Math.sin(t);
+          const dx=-s*r*Math.sin(t), dy=-s*r*Math.cos(t);
+          drawArrowHead(ctx, x, y, dx, dy, niceHsl(isPos,.95));
+          const mid=rad/2; ctx.fillStyle=niceHsl(isPos,.35); ctx.font='16px Inter';
+          ctx.fillText('α', cx+(r+22)*Math.cos(mid), cy-(r+22)*Math.sin(mid)); ctx.restore();
+        } else {
+          const dir=rad>=0?1:-1, isPos=dir>0; const a=10,b=3,absR=Math.abs(rad);
+          ctx.save(); ctx.lineWidth=1.8; let prevX,prevY; const step=0.045;
+          for(let t=0;t<=absR+1e-6;t+=step){
+            const ratio=Math.min(1,t/absR), r=a+b*t;
+            const x=cx+r*Math.cos(dir*t), y=cy-r*Math.sin(dir*t);
+            if(t===0){prevX=x; prevY=y; continue;}
+            ctx.beginPath(); ctx.moveTo(prevX,prevY); ctx.lineTo(x,y);
+            ctx.strokeStyle=niceHsl(isPos,ratio); ctx.stroke(); prevX=x; prevY=y;
+          }
+          const t=absR, r=a+b*t, x1=cx+r*Math.cos(dir*t), y1=cy-r*Math.sin(dir*t);
+          const dt=0.001, r2=a+b*(t+dt);
+          const x2=cx+r2*Math.cos(dir*(t+dt)), y2=cy-r2*Math.sin(dir*(t+dt));
+          drawArrowHead(ctx, x1,y1, x2-x1, y2-y1, niceHsl(isPos,.92));
+          ctx.fillStyle=niceHsl(isPos,.4); ctx.font='16px Inter'; ctx.fillText('α', x1+14, y1+16); ctx.restore();
+        }
+      }
+
+      function drawOM(){
+        const r=220, rad=toRad(alphaDeg);
+        const Mx=cx+r*Math.cos(rad), My=cy-r*Math.sin(rad);
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(Mx,My);
+        ctx.strokeStyle='#00897b'; ctx.lineWidth=2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(Mx,My,6,0,2*Math.PI); ctx.fillStyle='#00bcd4'; ctx.fill();
+        ctx.fillStyle='#0f172a'; ctx.font='14px Inter'; ctx.fillText("M", Mx+10, My-10);
+      }
+
+      function redraw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        drawAxes(); drawArc(); drawOM();
+
+        const dInt = Math.round(alphaDeg);
+        const k = Math.floor(dInt/360);
+        const base = dInt - k*360;
+        const sign = alphaDeg>0?"dương":(alphaDeg<0?"âm":"0");
+
+        let degDisplay = base + "°";
+        if(k!==0) degDisplay += (k>0?" + ":" − ") + Math.abs(k) + "·360°";
+        degShow.textContent = degDisplay;
+
+        let radDisplay = degToPiFrac(base);
+        if(k!==0) radDisplay += (k>0?" + ":" − ") + Math.abs(k) + "·2π";
+        radShow.textContent = radDisplay;
+
+        kShow.textContent = k; sgnShow.textContent = sign;
+
+        if(!ignoreSync){
+          ignoreSync = true;
+          degInput.value = dInt;
+          radInput.value = degToPiFrac(dInt);
+          betaInput.value = betaDeg;
+          ignoreSync = false;
+        }
+      }
+
+      // Drag M handlers (same as original)
+      function getPos1(evt){ const r=canvas.getBoundingClientRect();
+        const x = (evt.touches?evt.touches[0].clientX:evt.clientX) - r.left;
+        const y = (evt.touches?evt.touches[0].clientY:evt.clientY) - r.top;
+        return {x,y};
+      }
+      function rawAngleDegAt1(p){ return toDeg(Math.atan2(cy-p.y, p.x-cx)); }
+      function onDown1(e){
+        const p=getPos1(e), r=220;
+        const Mx=cx+r*Math.cos(toRad(alphaDeg)), My=cy-r*Math.sin(toRad(alphaDeg));
+        if(Math.hypot(p.x-Mx,p.y-My)<14){ dragging=true; lastRaw=rawAngleDegAt1(p); e.preventDefault(); }
+      }
+      function onMove1(e){
+        if(!dragging) return;
+        const p=getPos1(e), now=rawAngleDegAt1(p);
+        let d=now-lastRaw; if(d>180)d-=360; if(d<-180)d+=360;
+        alphaDeg += d; lastRaw = now; redraw(); e.preventDefault();
+      }
+      function onUp1(){ dragging=false; }
+
+      // Bind
+      degInput.addEventListener('input', ()=>{ if(ignoreSync) return; alphaDeg=parseInt(degInput.value)||0; redraw(); });
+      betaInput.addEventListener('input', ()=>{ if(ignoreSync) return; betaDeg=parseInt(betaInput.value)||45; redraw(); });
+      resetBtn.addEventListener('click', ()=>{
+  const start = alphaDeg;
+  const target = 0;
+  const duration = 600; // ms
+  const startTime = performance.now();
+
+  function animate(t){
+    const elapsed = t - startTime;
+    const progress = Math.min(1, elapsed/duration);
+    // easing cubic cho mượt
+    const eased = 1 - Math.pow(1-progress, 3);
+    alphaDeg = start + (target - start) * eased;
+    redraw();
+    if(progress < 1) requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+});
+
+      canvas.addEventListener('mousedown',onDown1);
+      canvas.addEventListener('mousemove',onMove1);
+      window.addEventListener('mouseup',onUp1);
+      canvas.addEventListener('touchstart',onDown1,{passive:false});
+      canvas.addEventListener('touchmove',onMove1,{passive:false});
+      window.addEventListener('touchend',onUp1);
+
+      // Expose để tab kích hoạt có thể redraw
+      window.__redrawView1 = redraw;
+
+      redraw();
+    })();
+
+    // ========= View 2: Biểu diễn góc lượng giác (sửa để rê M được) =========
+    (function(){
+      const canvas = document.getElementById('canvas2');
+      const ctx = canvas.getContext('2d');
+      const cx = canvas.width/2, cy = canvas.height/2;
+
+      const degInput = document.getElementById('degInput2');
+      const radInput = document.getElementById('radInput2');
+      const betaInput = document.getElementById('betaInput2');
+      const degShow = document.getElementById('degShow2');
+      const radShow = document.getElementById('radShow2');
+      const kShow = document.getElementById('kShow2');
+      const sgnShow = document.getElementById('sgnShow2');
+      const resetBtn = document.getElementById('resetBtn2');
+
+      let alphaDeg = 0, betaDeg = 90; // Oy mặc định thẳng đứng
+      let dragging=false, lastRaw=0, ignoreSync=false, activePointerId=null;
+
+      function drawAxes(){
+        ctx.save();
+        // Ox
+        const xLeft = 100, xRight = canvas.width - 80;
+        ctx.beginPath(); ctx.moveTo(xLeft, cy); ctx.lineTo(xRight, cy);
+        ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.4; ctx.stroke();
+        drawArrowHead(ctx, xRight, cy, 1, 0, '#0f172a');
+        ctx.fillStyle = '#0b2a4a'; ctx.font = '14px Inter'; ctx.fillText('x', xRight-12, cy-10);
+
+        // Oy
+        const yTop = 40, yBottom = canvas.height - 40;
+        const ang = toRad(betaDeg); // góc của Oy so với Ox
+        const lenTop = yBottom - yTop;
+        const yx1 = cx - Math.cos(ang)* (lenTop/2), yy1 = cy + Math.sin(ang)* (lenTop/2);
+        const yx2 = cx + Math.cos(ang)* (lenTop/2), yy2 = cy - Math.sin(ang)* (lenTop/2);
+        ctx.beginPath(); ctx.moveTo(yx1, yy1); ctx.lineTo(yx2, yy2);
+        ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.4; ctx.stroke();
+        drawArrowHead(ctx, yx2, yy2, Math.cos(ang), -Math.sin(ang), '#0f172a');
+        ctx.fillText('y', yx2+8, yy2+4);
+
+        ctx.beginPath(); ctx.arc(cx,cy,3,0,2*Math.PI); ctx.fillStyle='#000'; ctx.fill();
+        ctx.fillText('O', cx-18, cy+16);
+        ctx.restore();
+      }
+
+      function drawCircleAndPoints(){
+        const rCircle = 200;
+        ctx.save();
+        ctx.beginPath(); ctx.lineWidth=1.5; ctx.strokeStyle='#555';
+        ctx.arc(cx, cy, rCircle, 0, Math.PI*2); ctx.stroke();
+
+        const Ax = cx + rCircle, Ay = cy;
+        const Cx = cx - rCircle, Cy = cy;
+
+        const ang = toRad(betaDeg);
+        const Bx = cx + rCircle * Math.cos(ang);
+        const By = cy - rCircle * Math.sin(ang);
+        const Dx = cx - rCircle * Math.cos(ang);
+        const Dy = cy + rCircle * Math.sin(ang);
+
+        function dot(x,y,label, ox=10, oy=-8){
+          ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fillStyle='#d32f2f'; ctx.fill();
+          ctx.fillStyle='#0f172a'; ctx.font='14px Inter'; ctx.fillText(label, x+ox, y+oy);
+        }
+        dot(Ax,Ay,'A', -16,-8);
+        dot(Cx,Cy,'C', -18,-8);
+        dot(Bx,By,'B', 10,-4);
+        dot(Dx,Dy,'D', 10,20);
+
+        ctx.restore();
+      }
+
+      function drawOM(){
+        const r=200, rad=toRad(alphaDeg);
+        const Mx=cx+r*Math.cos(rad), My=cy-r*Math.sin(rad);
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(Mx,My);
+        ctx.strokeStyle='#00897b'; ctx.lineWidth=2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(Mx,My,6,0,2*Math.PI); ctx.fillStyle='#00bcd4'; ctx.fill();
+        ctx.fillStyle='#0f172a'; ctx.font='14px Inter';
+        ctx.fillText("M", Mx+10, My-10);
+        const r0=40, t=toRad(alphaDeg), x=cx+r0*Math.cos(t/2), y=cy-r0*Math.sin(t/2);
+        ctx.fillText("α = "+Math.round(alphaDeg)+"°", Mx+12, My+18);
+      }
+
+      function drawArc(){
+        const rad = toRad(alphaDeg); if(Math.abs(rad)<1e-6) return;
+        if(Math.abs(rad) < 2*Math.PI){
+          const r=42, steps=Math.max(28, Math.ceil(Math.abs(rad)/0.045)), isPos=rad>=0;
+          ctx.save(); ctx.lineWidth=1.8; let prevX=cx+r, prevY=cy;
+          for(let i=1;i<=steps;i++){
+            const t=(i/steps)*rad, x=cx+r*Math.cos(t), y=cy-r*Math.sin(t), ratio=i/steps;
+            ctx.beginPath(); ctx.moveTo(prevX,prevY); ctx.lineTo(x,y);
+            ctx.strokeStyle=niceHsl(isPos,ratio); ctx.stroke(); prevX=x; prevY=y;
+          }
+          const t=rad, s=Math.sign(rad)||1, x=cx+r*Math.cos(t), y=cy-r*Math.sin(t);
+          const dx=-s*r*Math.sin(t), dy=-s*r*Math.cos(t);
+          drawArrowHead(ctx, x, y, dx, dy, niceHsl(isPos,.95));
+          const mid=rad/2; ctx.fillStyle=niceHsl(isPos,.35); ctx.font='16px Inter';
+          ctx.fillText('α', cx+(r+22)*Math.cos(mid), cy-(r+22)*Math.sin(mid)); ctx.restore();
+        } else {
+          const dir=rad>=0?1:-1, isPos=dir>0; const a=10,b=3,absR=Math.abs(rad);
+          ctx.save(); ctx.lineWidth=1.8; let prevX,prevY; const step=0.045;
+          for(let t=0;t<=absR+1e-6;t+=step){
+            const ratio=Math.min(1,t/absR), r=a+b*t;
+            const x=cx+r*Math.cos(dir*t), y=cy-r*Math.sin(dir*t);
+            if(t===0){prevX=x; prevY=y; continue;}
+            ctx.beginPath(); ctx.moveTo(prevX,prevY); ctx.lineTo(x,y);
+            ctx.strokeStyle=niceHsl(isPos,ratio); ctx.stroke(); prevX=x; prevY=y;
+          }
+          const t=absR, r=a+b*t, x1=cx+r*Math.cos(dir*t), y1=cy-r*Math.sin(dir*t);
+          const dt=0.001, r2=a+b*(t+dt);
+          const x2=cx+r2*Math.cos(dir*(t+dt)), y2=cy-r2*Math.sin(dir*(t+dt));
+          drawArrowHead(ctx, x1,y1, x2-x1, y2-y1, niceHsl(isPos,.92));
+          ctx.fillStyle=niceHsl(isPos,.4); ctx.font='16px Inter'; ctx.fillText('α', x1+14, y1+16); ctx.restore();
+        }
+      }
+
+      function redraw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        drawAxes(); drawCircleAndPoints(); drawArc(); drawOM();
+
+        const dInt = Math.round(alphaDeg);
+        const k = Math.floor(dInt/360);
+        const base = dInt - k*360;
+        const sign = alphaDeg>0?"dương":(alphaDeg<0?"âm":"0");
+
+        let degDisplay = base + "°";
+        if(k!==0) degDisplay += (k>0?" + ":" − ") + Math.abs(k) + "·360°";
+        degShow.textContent = degDisplay;
+
+        let radDisplay = degToPiFrac(base);
+        if(k!==0) radDisplay += (k>0?" + ":" − ") + Math.abs(k) + "·2π";
+        radShow.textContent = radDisplay;
+
+        kShow.textContent = k; sgnShow.textContent = sign;
+
+        if(!ignoreSync){
+          ignoreSync = true;
+          degInput.value = dInt;
+          radInput.value = degToPiFrac(dInt);
+          betaInput.value = betaDeg;
+          ignoreSync = false;
+        }
+      }
+
+      // ---- Pointer-based drag helpers (mouse + touch unified) ----
+      function getPos2(evt){
+        const rect = canvas.getBoundingClientRect();
+        const clientX = (evt.touches ? evt.touches[0].clientX : evt.clientX);
+        const clientY = (evt.touches ? evt.touches[0].clientY : evt.clientY);
+        return { x: clientX - rect.left, y: clientY - rect.top };
+      }
+
+      function rawAngleDegAt2(p){
+        // return degrees in conventional math orientation (positive CCW from +x)
+        return toDeg(Math.atan2(cy - p.y, p.x - cx));
+      }
+
+      function onPointerDown(e){
+        const p = getPos2(e);
+        const r = 200;
+        const Mx = cx + r * Math.cos(toRad(alphaDeg));
+        const My = cy - r * Math.sin(toRad(alphaDeg));
+        if(Math.hypot(p.x - Mx, p.y - My) < 14){
+          dragging = true;
+          lastRaw = rawAngleDegAt2(p);
+          // try to capture pointer if available (for pointer events)
+          if(e.pointerId && canvas.setPointerCapture) {
+            activePointerId = e.pointerId;
+            try{ canvas.setPointerCapture(activePointerId); }catch(err){}
+          }
+          e.preventDefault();
+        }
+      }
+
+      function onPointerMove(e){
+        if(!dragging) return;
+        const p = getPos2(e);
+        const now = rawAngleDegAt2(p);
+        let d = now - lastRaw;
+        if(d > 180) d -= 360;
+        if(d < -180) d += 360;
+        alphaDeg += d;
+        lastRaw = now;
+        redraw();
+        e.preventDefault();
+      }
+
+      function onPointerUp(e){
+        if(dragging){
+          dragging = false;
+          if(activePointerId !== null && canvas.releasePointerCapture){
+            try{ canvas.releasePointerCapture(activePointerId); }catch(err){}
+            activePointerId = null;
+          }
+        }
+      }
+
+      // Bind existing inputs & reset
+      degInput.addEventListener('input', ()=>{ if(ignoreSync) return; alphaDeg=parseInt(degInput.value)||0; redraw(); });
+      betaInput.addEventListener('input', ()=>{ if(ignoreSync) return; betaDeg=parseInt(betaInput.value)||90; redraw(); });
+      resetBtn.addEventListener('click', ()=>{
+  const start = alphaDeg;
+  const duration = 600; // ms
+  const startTime = performance.now();
+
+  function animate(t){
+    const progress = Math.min((t - startTime) / duration, 1);
+    // easeOutCubic cho mềm mại
+    const eased = 1 - Math.pow(1 - progress, 3);
+    alphaDeg = start + (0 - start) * eased;
+    redraw();
+    if(progress < 1) requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+});
+
+      // Pointer event listeners: support mouse & touch via pointer events when available
+      if(window.PointerEvent){
+        canvas.addEventListener('pointerdown', onPointerDown);
+        canvas.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+      } else {
+        // fallback to mouse/touch
+        canvas.addEventListener('mousedown', onPointerDown);
+        canvas.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
+        canvas.addEventListener('touchstart', onPointerDown, {passive:false});
+        canvas.addEventListener('touchmove', onPointerMove, {passive:false});
+        window.addEventListener('touchend', onPointerUp);
+      }
+
+      // Expose cho tab
+      window.__redrawView2 = redraw;
+
+      redraw();
+    })();
+
+    // ========= View 3 (THAY BẰNG VIEW MỚI, VỚI SỬA LỖI) =========
+    (function(){
+      const canvas = document.getElementById('circleCanvasVal');
+      const ctx = canvas.getContext('2d');
+
+      const angleInput = document.getElementById('angleInputVal');
+      const radInput = document.getElementById('radInputVal');
+      const angleLabelEl = document.getElementById('angleLabelVal');
+      const modeSelect = document.getElementById('modeSelectVal');
+      const showSecond = document.getElementById('showSecondVal');
+      const resetBtn = document.getElementById('resetBtnVal');
+      const identityBox = document.getElementById('identityBoxVal');
+
+      const centerX = canvas.width/2, centerY = canvas.height/2;
+      const radius = 200, innerR = radius * 0.22;
+
+      let totalAngle = 0, displayAngle = 0, dragging=false, lastRaw=0, ignoreSync=false;
+
+      const colorSin1='#ff9800', colorCos1='#43a047';
+      const colorSin2='#ff5722', colorCos2='#3f51b5';
+      const colorTanCot='#9c27b0';
+
+      function drawTextLocal(text,x,y,align='left',color='#000'){
+        ctx.textAlign=align; ctx.fillStyle=color; ctx.fillText(text,x,y+4); ctx.textAlign='left';
+      }
+
+      // exact trig lookup
+      function getExactTrig(deg) {
+        let d = ((deg % 360) + 360) % 360;
+        const exact = {
+          0:   { sin: "0",     cos: "1",      tan: "0",      cot: "∞" },
+          30:  { sin: "1/2",   cos: "√3/2",   tan: "1/√3",   cot: "√3" },
+          45:  { sin: "√2/2",  cos: "√2/2",   tan: "1",      cot: "1" },
+          60:  { sin: "√3/2",  cos: "1/2",    tan: "√3",     cot: "1/√3" },
+          90:  { sin: "1",     cos: "0",      tan: "∞",      cot: "0" },
+          120: { sin: "√3/2",  cos: "−1/2",   tan: "−√3",    cot: "−1/√3" },
+          135: { sin: "√2/2",  cos: "−√2/2",  tan: "−1",     cot: "−1" },
+          150: { sin: "1/2",   cos: "−√3/2",  tan: "−1/√3",  cot: "−√3" },
+          180: { sin: "0",     cos: "−1",     tan: "0",      cot: "∞" },
+          210: { sin: "−1/2",  cos: "−√3/2",  tan: "1/√3",   cot: "√3" },
+          225: { sin: "−√2/2", cos: "−√2/2",  tan: "1",      cot: "1" },
+          240: { sin: "−√3/2", cos: "−1/2",   tan: "√3",     cot: "1/√3" },
+          270: { sin: "−1",    cos: "0",      tan: "∞",      cot: "0" },
+          300: { sin: "−√3/2", cos: "1/2",    tan: "−√3",    cot: "−1/√3" },
+          315: { sin: "−√2/2", cos: "√2/2",   tan: "−1",     cot: "−1" },
+          330: { sin: "−1/2",  cos: "√3/2",   tan: "−1/√3",  cot: "−√3" },
+          360: { sin: "0",     cos: "1",      tan: "0",      cot: "∞" }
+        };
+        return exact[d] || null;
+      }
+
+      function drawAngleSector(angleRad, primary=true){
+        if(Math.abs(angleRad) < 1e-6) return;
+        const fillColor = primary ? 'rgba(25,118,210,0.15)' : 'rgba(0,150,136,0.15)';
+        const strokeColor = primary ? '#1976d2' : '#009688';
+
+        // Trường hợp α nhỏ hoặc vừa (≤ 2π): vẽ sector bình thường
+        if(Math.abs(angleRad) <= Math.PI*2){
+          let ang = angleRad;
+          const steps = Math.max(6, Math.min(400, Math.ceil(Math.abs(ang) / 0.03)));
+          ctx.save();
+          ctx.beginPath(); ctx.moveTo(centerX, centerY);
+          for(let i=0;i<=steps;i++){ 
+            const t=(i/steps)*ang; 
+            const px=centerX+innerR*Math.cos(t); 
+            const py=centerY-innerR*Math.sin(t); 
+            ctx.lineTo(px,py); 
+          }
+          ctx.closePath(); 
+          ctx.fillStyle = fillColor; ctx.fill();
+
+          ctx.beginPath();
+          for(let i=0;i<=steps;i++){ 
+            const t=(i/steps)*ang; 
+            const px=centerX+innerR*Math.cos(t); 
+            const py=centerY-innerR*Math.sin(t); 
+            if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); 
+          }
+          ctx.strokeStyle=strokeColor; ctx.lineWidth=1; ctx.stroke();
+
+          // arrow ở cuối cung nhỏ
+          const lastT = ang, prevT = ang - (ang/steps);
+          const lastX=centerX+innerR*Math.cos(lastT), lastY=centerY-innerR*Math.sin(lastT);
+          const prevX=centerX+innerR*Math.cos(prevT), prevY=centerY-innerR*Math.sin(prevT);
+          let dirX=lastX-prevX, dirY=lastY-prevY; 
+          const L=Math.hypot(dirX,dirY)||1; 
+          dirX/=L; dirY/=L;
+          drawArrowHead(ctx, lastX, lastY, dirX, dirY, strokeColor);
+          ctx.restore();
+
+          // label
+          const midT = ang/2; 
+          const tx = centerX + (innerR+22)*Math.cos(midT); 
+          const ty = centerY - (innerR+22)*Math.sin(midT);
+          ctx.fillStyle = strokeColor; 
+          ctx.font = 'bold 18px Segoe UI,Tahoma';
+          if (primary) { 
+            const label = totalAngle < 0 ? '−α' : 'α'; 
+            ctx.fillText(label, tx, ty); 
+          }
+          else { 
+            ctx.fillText(getSecondLabel(modeSelect.value), tx, ty); 
+          }
+        } else {
+          // α > 2π: KHÔNG vẽ cung nhỏ nữa, chỉ vẽ spiral
+          const sign = angleRad >= 0 ? 1 : -1;
+          const absA = Math.abs(angleRad);
+          const k = Math.floor(absA / (2*Math.PI));
+
+          // spiral biểu diễn số vòng quay
+          drawSpiral(angleRad, strokeColor, sign * k);
+        }
+      }
+
+      function formatRadianLocal(deg){
+        // dùng helper degToPiFrac (từ global)
+        return degToPiFrac(deg);
+      }
+
+      function drawSpiral(angleRad, strokeColor, kTurns=0){
+        const dir = angleRad >= 0 ? 1 : -1;
+        const absR = Math.abs(angleRad);
+        const a = 8; // bán kính bắt đầu
+        const b = 3; // khoảng cách tăng theo t
+        const step = 0.08; // bước theo radian
+        ctx.save(); ctx.lineWidth = 1.6; ctx.strokeStyle = strokeColor; ctx.fillStyle = strokeColor;
+        let prevX = null, prevY = null, prevDx = 0, prevDy = 0;
+        for(let t=0; t<=absR+1e-6; t += step){
+          const r = a + b * t;
+          const x = centerX + r * Math.cos(dir * t);
+          const y = centerY - r * Math.sin(dir * t);
+          if(prevX === null){ prevX = x; prevY = y; continue; }
+          ctx.beginPath(); ctx.moveTo(prevX, prevY); ctx.lineTo(x, y); ctx.stroke();
+          prevDx = x - prevX; prevDy = y - prevY; prevX = x; prevY = y;
+        }
+        // mũi tên cuối spiral
+        if(prevX !== null){
+          drawArrowHead(ctx, prevX, prevY, prevDx, prevDy, strokeColor);
+          ctx.font = '13px Segoe UI';
+          ctx.fillText((angleRad * 180 / Math.PI).toFixed(1) + '°', prevX + 12, prevY + 6);
+        }
+        ctx.restore();
+      }
+
+      function drawSingle(angleDeg, primary=true, labelSuffix=''){
+        const angleRad = angleDeg * Math.PI/180;
+        const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
+        const Mx = centerX + radius * cos, My = centerY - radius * sin;
+        const Hx = Mx, Hy = centerY, Kx = centerX, Ky = My;
+        drawAngleSector(angleRad, primary);
+        ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(Mx, My);
+        ctx.strokeStyle = primary ? '#1976d2' : '#009688'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(Mx, My, 6, 0, 2*Math.PI);
+        ctx.fillStyle = primary ? '#e53935' : '#00bcd4'; ctx.fill();
+        ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke();
+        drawTextLocal('M'+labelSuffix, Mx+14, My-10);
+        const {theta1,theta2}=getThetaLabels(modeSelect.value);
+        const thetaLabel=primary?theta1:theta2;
+
+        // cos projection
+        ctx.beginPath(); ctx.moveTo(Mx, My); ctx.lineTo(Mx, centerY);
+        ctx.strokeStyle = primary?colorCos1:colorCos2; ctx.setLineDash([5,3]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(Hx, Hy, 4, 0, 2*Math.PI);
+        ctx.fillStyle = primary?colorCos1:colorCos2; ctx.fill();
+
+        // sin projection
+        ctx.beginPath(); ctx.moveTo(Mx, My); ctx.lineTo(centerX, My);
+        ctx.strokeStyle = primary?colorSin1:colorSin2; ctx.setLineDash([5,3]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(Kx, Ky, 4, 0, 2*Math.PI);
+        ctx.fillStyle = primary?colorSin1:colorSin2; ctx.fill();
+
+        const exactVal = getExactTrig(Math.round(angleDeg));
+        if (exactVal) {
+          drawTextLocal(`cos(${thetaLabel}) = ${exactVal.cos}`, Hx+12, Hy+18,'right',primary?colorCos1:colorCos2);
+          drawTextLocal(`sin(${thetaLabel}) = ${exactVal.sin}`, Kx+24, Ky-12,'left',primary?colorSin1:colorSin2);
+        } else {
+          drawTextLocal(`cos(${thetaLabel}) = ${cos.toFixed(3)}`, Hx+12, Hy+18,'right',primary?colorCos1:colorCos2);
+          drawTextLocal(`sin(${thetaLabel}) = ${sin.toFixed(3)}`, Kx+24, Ky-12,'left',primary?colorSin1:colorSin2);
+        }
+
+        return {sin, cos};
+      }
+
+      function getSecondAngle(deg, mode){
+        switch(mode){
+          case 'opposite': return -deg;
+          case 'supplementary': return 180 - deg;
+          case 'explementary': return deg + 180;
+          case 'complementary': return 90 - deg;
+          case 'conjugate': return 360 - deg;
+          default: return null;
+        }
+      }
+
+      function getIdentity(mode){
+        switch(mode){
+          case 'opposite':return 'sin(−α) = −sinα,  cos(−α) = cosα,tan(−α) = tanα,cot(−α) = cotα';
+          case 'supplementary':return 'sin(π−α) = sinα,  cos(π−α) = −cosα';
+          case 'explementary':return 'sin(π+α) = −sinα,  cos(π+α) = −cosα';
+          case 'complementary':return 'sin(π/2−α) = cosα,  cos(π/2−α) = sinα';
+          case 'conjugate':return 'sin(2π−α) = −sinα,  cos(2π−α) = cosα';
+          default:return '';
+        }
+      }
+
+      function getSecondLabel(mode){
+        switch(mode){
+          case 'opposite': return '−α';
+          case 'supplementary': return 'π−α';
+          case 'explementary': return 'π+α';
+          case 'complementary': return 'π/2−α';
+          case 'conjugate': return '2π−α';
+          default: return "α₂";
+        }
+      }
+
+      function getThetaLabels(mode){
+        const baseLabel = totalAngle < 0 ? "−α" : "α";
+        switch(mode){
+          case 'opposite':return {theta1:baseLabel,theta2:(baseLabel==="α"?"−α":"α")};
+          case 'supplementary':return {theta1:baseLabel,theta2:"π−"+baseLabel};
+          case 'explementary':return {theta1:baseLabel,theta2:"π+"+baseLabel};
+          case 'complementary':return {theta1:baseLabel,theta2:"π/2−"+baseLabel};
+          case 'conjugate':return {theta1:baseLabel,theta2:"2π−"+baseLabel};
+          default:return {theta1:baseLabel,theta2:"α₂"};
+        }
+      }
+
+      function drawScene(angleDeg){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+
+        ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2*Math.PI);
+        ctx.strokeStyle='#333'; ctx.lineWidth=2; ctx.stroke();
+
+        // axes
+        ctx.beginPath();
+        ctx.moveTo(centerX-radius-25,centerY);ctx.lineTo(centerX+radius+25,centerY);
+        ctx.moveTo(centerX+radius+18,centerY-7);ctx.lineTo(centerX+radius+25,centerY);ctx.lineTo(centerX+radius+18,centerY+7);
+        ctx.moveTo(centerX,centerY-radius-25);ctx.lineTo(centerX,centerY+radius+25);
+        ctx.moveTo(centerX-7,centerY-radius-18);ctx.lineTo(centerX,centerY-radius-25);ctx.lineTo(centerX+7,centerY-radius-18);
+        ctx.strokeStyle='#777';ctx.lineWidth=1;ctx.stroke();
+
+        ctx.font='15px Segoe UI,Tahoma,sans-serif';
+        ctx.fillStyle=colorCos1; ctx.fillText('cos', centerX+radius+35, centerY+5);
+        ctx.fillStyle=colorSin1; ctx.fillText('sin', centerX-15, centerY-radius-35);
+
+        ctx.beginPath();ctx.arc(centerX,centerY,4,0,2*Math.PI);ctx.fillStyle='#000';ctx.fill();
+        drawTextLocal('O',centerX-14,centerY+16);
+
+        const res1 = drawSingle(angleDeg, true, '');
+
+        const secondAngleDeg = getSecondAngle(angleDeg, modeSelect.value);
+        let res2 = null;
+        if(secondAngleDeg !== null && modeSelect.value !== 'none' && showSecond.checked){
+          res2 = drawSingle(secondAngleDeg, false, "'");
+        }
+
+        const EPS = 1e-8;
+        const tan1 = Math.abs(res1.cos) < EPS ? '∞' : (res1.sin/res1.cos).toFixed(3);
+        const cot1 = Math.abs(res1.sin) < EPS ? '∞' : (res1.cos/res1.sin).toFixed(3);
+
+        // left info labels
+        const {theta1, theta2} = getThetaLabels(modeSelect.value);
+
+        // update left panel numeric/strings (angleLabelEl)
+        angleLabelEl.textContent = `Góc hiện tại: ${angleDeg.toFixed(1)}° (${(angleDeg*Math.PI/180).toFixed(3)} rad)`;
+
+        // display on canvas bottom-left
+        const exact1 = getExactTrig(Math.round(angleDeg));
+        if (exact1) {
+          ctx.fillStyle=colorSin1; ctx.fillText(`sin(${theta1}) = ${exact1.sin}`,20,canvas.height-120);
+          ctx.fillStyle=colorCos1; ctx.fillText(`cos(${theta1}) = ${exact1.cos}`,20,canvas.height-100);
+          ctx.fillStyle=colorTanCot;
+          drawTextLocal(`tan(${theta1}) = ${exact1.tan}`,20,canvas.height-80,'left',exact1.tan==='∞'?'red':colorTanCot);
+          drawTextLocal(`cot(${theta1}) = ${exact1.cot}`,20,canvas.height-60,'left',exact1.cot==='∞'?'red':colorTanCot);
+        } else {
+          ctx.fillStyle=colorSin1; ctx.fillText(`sin(${theta1}) = ${res1.sin.toFixed(3)}`,20,canvas.height-120);
+          ctx.fillStyle=colorCos1; ctx.fillText(`cos(${theta1}) = ${res1.cos.toFixed(3)}`,20,canvas.height-100);
+          ctx.fillStyle=colorTanCot;
+          drawTextLocal(`tan(${theta1}) = ${tan1}`,20,canvas.height-80,'left',tan1==='∞'?'red':colorTanCot);
+          drawTextLocal(`cot(${theta1}) = ${cot1}`,20,canvas.height-60,'left',cot1==='∞'?'red':colorTanCot);
+        }
+
+        // góc 2 (nếu có)
+        if(res2){
+          const tan2 = Math.abs(res2.cos)<EPS ? '∞' : (res2.sin/res2.cos).toFixed(3);
+          const cot2 = Math.abs(res2.sin)<EPS ? '∞' : (res2.cos/res2.sin).toFixed(3);
+          const exact2 = getExactTrig(Math.round(secondAngleDeg));
+          const rightX = canvas.width - 20;
+          ctx.textAlign='right';
+          if (exact2) {
+            ctx.fillStyle=colorSin2; ctx.fillText(`sin(${theta2}) = ${exact2.sin}`, rightX, canvas.height-120);
+            ctx.fillStyle=colorCos2; ctx.fillText(`cos(${theta2}) = ${exact2.cos}`, rightX, canvas.height-100);
+            ctx.fillStyle=colorTanCot;
+            ctx.fillText(`tan(${theta2}) = ${exact2.tan}`, rightX, canvas.height-80);
+            ctx.fillText(`cot(${theta2}) = ${exact2.cot}`, rightX, canvas.height-60);
+          } else {
+            ctx.fillStyle=colorSin2; ctx.fillText(`sin(${theta2}) = ${res2.sin.toFixed(3)}`, rightX, canvas.height-120);
+            ctx.fillStyle=colorCos2; ctx.fillText(`cos(${theta2}) = ${res2.cos.toFixed(3)}`, rightX, canvas.height-100);
+            ctx.fillStyle=colorTanCot;
+            ctx.fillText(`tan(${theta2}) = ${tan2}`, rightX, canvas.height-80);
+            ctx.fillText(`cot(${theta2}) = ${cot2}`, rightX, canvas.height-60);
+          }
+          ctx.textAlign='left';
+        }
+
+        identityBox.textContent = getIdentity(modeSelect.value);
+      }
+
+      // events & helpers for view3
+      function setAngleVal(deg){
+        totalAngle = deg;
+        displayAngle = deg;
+        const rad = deg*Math.PI/180;
+        ignoreSync=true;
+        angleInput.value = Math.round(deg);
+        radInput.value = degToPiFrac(Math.round(deg));
+        ignoreSync=false;
+        angleLabelEl.textContent = `Góc hiện tại: ${deg.toFixed(1)}° (${rad.toFixed(3)} rad)`;
+        identityBox.textContent = getIdentity(modeSelect.value);
+        drawScene(deg);
+      }
+
+      angleInput.addEventListener('input', ()=>{ if(ignoreSync) return; setAngleVal(parseFloat(angleInput.value)||0); });
+      radInput.addEventListener('input', ()=> {
+        if(ignoreSync) return;
+        let val = radInput.value.trim();
+        let rad=0, piIdx=val.indexOf('π');
+        if(piIdx!==-1){
+          let coeff = val.slice(0,piIdx);
+          rad = (coeff===''||coeff==='+')?Math.PI:(coeff==='−'||coeff==='-')?-Math.PI:parseFloat(coeff)*Math.PI;
+        } else rad = parseFloat(val);
+        if(!isNaN(rad)) setAngleVal(rad*180/Math.PI);
+      });
+      resetBtn.addEventListener('click', ()=>{
+        const start = totalAngle;
+        const target = 0;
+        const duration = 600; // ms
+        const startTime = performance.now();
+
+        function animate(t){
+          const elapsed = t - startTime;
+          const progress = Math.min(1, elapsed/duration);
+          // easing (mượt hơn): easeOutCubic
+          const eased = 1 - Math.pow(1-progress, 3);
+          const current = start + (target - start) * eased;
+          setAngleVal(current);
+          if(progress < 1) requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+      });
+
+      modeSelect.addEventListener('change', ()=>{ identityBox.textContent = getIdentity(modeSelect.value); drawScene(totalAngle); });
+      showSecond.addEventListener('change', ()=> drawScene(totalAngle));
+
+      // drag handling on canvas (rotate M)
+      canvas.addEventListener('mousedown', e=>{
+        dragging=true;
+        const rect=canvas.getBoundingClientRect();
+        const x=e.clientX-rect.left-centerX,y=-(e.clientY-rect.top-centerY);
+        lastRaw=Math.atan2(y,x);
+      });
+      canvas.addEventListener('mousemove', e=>{
+        if(!dragging) return;
+        const rect=canvas.getBoundingClientRect();
+        const x=e.clientX-rect.left-centerX,y=-(e.clientY-rect.top-centerY);
+        const raw=Math.atan2(y,x);
+        let diff=(raw-lastRaw)*180/Math.PI;
+        if(diff>180) diff-=360; else if(diff<-180) diff+=360;
+        setAngleVal(totalAngle+diff); lastRaw=raw;
+      });
+      canvas.addEventListener('mouseup', ()=>{ dragging=false; });
+      canvas.addEventListener('mouseleave', ()=>{ dragging=false; });
+
+      // expose redraw for tab switching
+      window.__redrawView3 = ()=> setAngleVal(totalAngle);
+
+      // initial
+      setAngleVal(0);
+    })();
+
+    // ========= Tab switching (3 tabs) =========
+    (function(){
+      const btnAngle = document.getElementById('btnAngle');
+      const btnRepr  = document.getElementById('btnRepr');
+      const btnValues = document.getElementById('btnValues');
+      const v1 = document.getElementById('view-angle');
+      const v2 = document.getElementById('view-repr');
+      const v3 = document.getElementById('view-values');
+
+      function clearActiveButtons(){
+        btnAngle.classList.remove('active');
+        btnRepr.classList.remove('active');
+        btnValues.classList.remove('active');
+      }
+      function hideAllViews(){
+        v1.classList.remove('active');
+        v2.classList.remove('active');
+        v3.classList.remove('active');
+      }
+
+      function activate(which){
+        hideAllViews(); clearActiveButtons();
+        if(which === 1){
+          btnAngle.classList.add('active'); v1.classList.add('active');
+          if(typeof window.__redrawView1 === 'function') window.__redrawView1();
+        } else if(which === 2){
+          btnRepr.classList.add('active'); v2.classList.add('active');
+          if(typeof window.__redrawView2 === 'function') window.__redrawView2();
+        } else {
+          btnValues.classList.add('active'); v3.classList.add('active');
+          if(typeof window.__redrawView3 === 'function') window.__redrawView3();
+        }
+      }
+
+      btnAngle.addEventListener('click', ()=> activate(1));
+      btnRepr.addEventListener('click', ()=> activate(2));
+      btnValues.addEventListener('click', ()=> activate(3));
+    })();
+
+    // Tạo các giọt mưa
+    (function(){
+      const rainContainer = document.querySelector('.rain');
+      const numRaindrops = 50; // Số lượng giọt mưa, có thể điều chỉnh
+      for(let i = 0; i < numRaindrops; i++) {
+        const raindrop = document.createElement('div');
+        raindrop.className = 'raindrop';
+        raindrop.style.left = `${Math.random() * 100}%`;
+        raindrop.style.animationDelay = `${Math.random() * 2}s`;
+        rainContainer.appendChild(raindrop);
+      }
+    })();
+  </script>
+</body>
+</html>
